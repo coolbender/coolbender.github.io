@@ -1,0 +1,64 @@
+<div>Teachable Machine Image Model</div>
+<input type="file" id="image-upload" accept="image/*">
+<div id="label-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+<script type="text/javascript">
+    // El enlace a tu modelo proporcionado por el panel de exportación de Teachable Machine
+    const URL = "https://teachablemachine.withgoogle.com/models/qJM_zSNUL/";
+
+    let model, labelContainer, maxPredictions;
+
+    // Cargar el modelo de imagen
+    async function init() {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+
+        // Cargar el modelo y los metadatos
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+
+        // Crear contenedor para las etiquetas
+        labelContainer = document.getElementById("label-container");
+        for (let i = 0; i < maxPredictions; i++) {
+            labelContainer.appendChild(document.createElement("div"));
+        }
+
+        // Configurar el evento de carga de imagen
+        document.getElementById("image-upload").addEventListener("change", handleImageUpload);
+    }
+
+    // Manejar la carga de la imagen
+    async function handleImageUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // Crear un objeto Image y cargar la imagen
+        const img = new Image();
+        img.onload = async function () {
+            // Preprocesar la imagen y predecir
+            const prediction = await predict(img);
+            for (let i = 0; i < maxPredictions; i++) {
+                const classPrediction = prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+                labelContainer.childNodes[i].innerHTML = classPrediction;
+            }
+        };
+
+        // Establecer la fuente de la imagen como el archivo cargado
+        const reader = new FileReader();
+        reader.onloadend = function () {
+            img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Hacer predicción con la imagen cargada
+    async function predict(img) {
+        const predictions = await model.predict(img);
+        return predictions;
+    }
+
+    // Inicializar el modelo
+    init();
+</script>
